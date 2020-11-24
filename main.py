@@ -9,6 +9,8 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 import pyperclip
 
@@ -34,7 +36,25 @@ def search(driver, keyword):
     ActionChains(driver).key_down(Keys.ENTER).perform()
 
 
-def lookup(driver, folder_name, count, new_added):
+def get_color(color):
+    if color == "red":
+        return 'favoriteColor1'
+    elif color == "yellow":
+        return 'favoriteColor2'
+    elif color == "orange":
+        return 'favoriteColor3'
+    elif color == "green":
+        return 'favoriteColor5'
+    elif color == "purple":
+        return 'favoriteColor6'
+    elif color == "pink":
+        return 'favoriteColor7'
+    else:  # color=="light green"
+        return 'favoriteColor4'
+
+
+def lookup(driver, folder_name, count, new_added, shape, color):
+    wait = WebDriverWait(driver, 10)
     try:
         saved = driver.find_elements_by_class_name("SAVED")
         len_saved = len(saved)
@@ -47,16 +67,32 @@ def lookup(driver, folder_name, count, new_added):
             i += 1
     except:
         pass
-    try:
-        driver.find_element_by_link_text(folder_name).click()
-    except:
+
+    folderExist = False
+    folders = driver.find_elements_by_class_name("txt_folder")
+    for folder in folders:
+        if folder.text == folder_name:
+            folder.click()
+            folderExist = True
+            break
+
+    if not folderExist:
         driver.find_element_by_link_text('새 폴더 추가').click()
+        time.sleep(3)
+        driver.find_element_by_class_name('btn_option').click()
+        time.sleep(3)
+        driver.find_element_by_link_text(shape).click()
+        time.sleep(3)
         driver.find_element_by_id('folderName').send_keys(folder_name)
-        time.sleep(1)
+        time.sleep(3)
         driver.find_element_by_xpath(
             '/html/body/div[20]/div[4]/form/fieldset/div[3]/button').click()
-    time.sleep(1)
-    ActionChains(driver).key_down(Keys.ENTER).perform()
+
+    color = get_color(color)
+    time.sleep(3)
+    driver.find_element_by_id(color).click()
+    time.sleep(3)
+    driver.find_elements_by_class_name('btn_submit')[0].click()
     return count + 1, new_added + 1
 
 
@@ -96,16 +132,14 @@ def main(args):
 
     time.sleep(5)
 
-    address_list = driver.find_element_by_xpath(
-        '//*[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/favorite-place-bookmark-list/div[2]/place-list-item/ul').text
-
-    address_list = address_list.split("\n")
+    address_list = driver.find_elements_by_class_name("item_result")
+    len_address_list = len(address_list)
     total = []
-
-    for i in range(0, len(address_list), 3):
+    for i in range(len_address_list):
+        infos = address_list[i].text.split("\n")
         dic = defaultdict(str)
-        dic["name"] = address_list[i]
-        dic["address"] = address_list[i+1]
+        dic["name"] = infos[0]
+        dic["address"] = infos[1]
         total.append(dic)
 
     driver.get("https://map.kakao.com/")
@@ -131,7 +165,7 @@ def main(args):
         if i % 100 == 0 and i != 0:
             kakao_folder = kakao_folder + str(i//100)
         keyword = f"{total[i]['address']} {total[i]['name']}"
-        time.sleep(1)
+        time.sleep(2)
         search(driver, keyword)
 
         time.sleep(2)
@@ -147,7 +181,7 @@ def main(args):
             pass
 
         if driver.find_element_by_class_name("retry").is_displayed():
-            time.sleep(1)
+            time.sleep(2)
             keyword = total[i]['name']
             search(driver, keyword)
 
@@ -156,7 +190,8 @@ def main(args):
             driver.find_element_by_class_name("fav").click()
 
             time.sleep(3)
-            count, new_added = lookup(driver, kakao_folder, count, new_added)
+            count, new_added = lookup(
+                driver, kakao_folder, count, new_added, args.shape, args.color)
             time.sleep(1)
         except:
             pass
@@ -175,6 +210,8 @@ if __name__ == "__main__":
     parser.add_argument('--kakao_id', type=str, required=True)
     parser.add_argument('--kakao_pw', type=str, required=True)
     parser.add_argument('--kakao_folder', type=str)
+    parser.add_argument('--shape', type=str, default="like")
+    parser.add_argument('--color', type=str, default="red")
     parser.add_argument('--os', type=str, required=True)
     args = parser.parse_args()
 
