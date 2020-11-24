@@ -9,6 +9,8 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -26,6 +28,60 @@ def clipboard_input(driver, xpath, user_input, os):
     else:
         ActionChains(driver).key_down(Keys.COMMAND).send_keys(
             'v').perform()
+
+
+def sign_in_naver(driver, args):
+    driver.get("https://map.naver.com/v5/favorite/myPlace/folder/")
+    time.sleep(1)
+    clipboard_input(driver, '//*[@id="id"]', args.naver_id, args.os)
+    clipboard_input(driver, '//*[@id="pw"]', args.naver_pw, args.os)
+    driver.find_element_by_id("log.login").click()
+
+
+def sign_in_kakao(driver, args):
+    driver.get("https://map.kakao.com/")
+    driver.find_element_by_css_selector("img")
+    try:
+        driver.find_element_by_class_name("layer_body").click()
+    except:
+        pass
+    driver.find_element_by_id("btnLogin").click()
+
+    clipboard_input(
+        driver, '//*[@id="loginEmailField"]', args.kakao_id, args.os)
+    clipboard_input(
+        driver, '//*[@id="login-form"]/fieldset/div[3]', args.kakao_pw, args.os)
+    driver.find_element_by_class_name("submit").click()
+
+
+def get_naver_places(driver, naver_folder):
+    element = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CLASS_NAME, 'list_place')))
+    categ_list = driver.find_element_by_class_name(
+        'list_place').text.split("\n")
+    categ_size = len(categ_list)
+    for i in range(categ_size):
+        try:
+            folder = driver.find_element_by_xpath(
+                f'//*[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/div/favorite-place-folder-list/ul/li[{i}]/a/div/span[1]')
+            if naver_folder == folder.text:
+                folder.click()
+        except:
+            pass
+
+    time.sleep(5)
+
+    address_list = driver.find_elements_by_class_name("item_result")
+    len_address_list = len(address_list)
+    total = []
+    for i in range(len_address_list):
+        infos = address_list[i].text.split("\n")
+        dic = defaultdict(str)
+        dic["name"] = infos[0]
+        dic["address"] = infos[1]
+        total.append(dic)
+
+    return total
 
 
 def search(driver, keyword):
@@ -54,7 +110,6 @@ def get_color(color):
 
 
 def lookup(driver, folder_name, count, new_added, shape, color):
-    wait = WebDriverWait(driver, 10)
     try:
         saved = driver.find_elements_by_class_name("SAVED")
         len_saved = len(saved)
@@ -88,10 +143,9 @@ def lookup(driver, folder_name, count, new_added, shape, color):
         driver.find_element_by_xpath(
             '/html/body/div[20]/div[4]/form/fieldset/div[3]/button').click()
 
-    color = get_color(color)
-    time.sleep(3)
-    driver.find_element_by_id(color).click()
-    time.sleep(3)
+    element = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.ID, color)))
+    element.click()
     driver.find_elements_by_class_name('btn_submit')[0].click()
     return count + 1, new_added + 1
 
@@ -99,77 +153,33 @@ def lookup(driver, folder_name, count, new_added, shape, color):
 def main(args):
     naver_folder = args.naver_folder
     kakao_folder = args.kakao_folder
+    color = get_color(args.color)
 
     option = Options()
-
     option.add_argument("--disable-infobars")
     option.add_argument("start-maximized")
     option.add_argument("--disable-extensions")
-
     driver = webdriver.Chrome(
         ChromeDriverManager().install(), chrome_options=option)
 
-    driver.get("https://map.naver.com/v5/favorite/myPlace/folder/")
-
-    time.sleep(1)
-    clipboard_input(driver, '//*[@id="id"]', args.naver_id, args.os)
-    clipboard_input(driver, '//*[@id="pw"]', args.naver_pw, args.os)
-    driver.find_element_by_id("log.login").click()
-
-    time.sleep(5)
-    categ_list = driver.find_element_by_class_name(
-        'list_place').text.split("\n")
-    categ_size = len(categ_list)
-
-    for i in range(categ_size):
-        try:
-            folder = driver.find_element_by_xpath(
-                f'//*[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/div/favorite-place-folder-list/ul/li[{i}]/a/div/span[1]')
-            if naver_folder == folder.text:
-                folder.click()
-        except:
-            pass
-
-    time.sleep(5)
-
-    address_list = driver.find_elements_by_class_name("item_result")
-    len_address_list = len(address_list)
-    total = []
-    for i in range(len_address_list):
-        infos = address_list[i].text.split("\n")
-        dic = defaultdict(str)
-        dic["name"] = infos[0]
-        dic["address"] = infos[1]
-        total.append(dic)
-
-    driver.get("https://map.kakao.com/")
-    driver.find_element_by_css_selector("img")
-    try:
-        driver.find_element_by_class_name("layer_body").click()
-    except:
-        pass
-    driver.find_element_by_id("btnLogin").click()
-
-    clipboard_input(
-        driver, '//*[@id="loginEmailField"]', args.kakao_id, args.os)
-    clipboard_input(
-        driver, '//*[@id="login-form"]/fieldset/div[3]', args.kakao_pw, args.os)
-    driver.find_element_by_class_name("submit").click()
-
+    sign_in_naver(driver, args)
+    total = get_naver_places(driver, naver_folder)
     num_restaurant = len(total)
     print(f'네이버 "{naver_folder}"에서 가져온 장소 토탈 {num_restaurant}개')
+
+    sign_in_kakao(driver, args)
 
     count = 0
     new_added = 0
     for i in range(num_restaurant):
-        if i % 100 == 0 and i != 0:
-            kakao_folder = kakao_folder + str(i//100)
+        if i % 10 == 0:
+            print(f"{int((i/num_restaurant)*100)}% 진행 중...")
+        if count % 100 == 0 and i != 0:
+            kakao_folder = args.kakao_folder + str(i//100)
         keyword = f"{total[i]['address']} {total[i]['name']}"
         time.sleep(2)
         search(driver, keyword)
-
         time.sleep(2)
-
         if driver.find_element_by_class_name("message").is_displayed() and driver.find_element_by_class_name("addrtitle").text == "주소":
             # invalid place
             continue
@@ -185,13 +195,14 @@ def main(args):
             keyword = total[i]['name']
             search(driver, keyword)
 
-        time.sleep(2)
-        try:
-            driver.find_element_by_class_name("fav").click()
+        element = WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, "fav")))
 
-            time.sleep(3)
+        try:
+            element.click()
+            time.sleep(1)
             count, new_added = lookup(
-                driver, kakao_folder, count, new_added, args.shape, args.color)
+                driver, kakao_folder, count, new_added, args.shape, color)
             time.sleep(1)
         except:
             pass
