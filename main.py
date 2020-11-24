@@ -62,11 +62,12 @@ def get_naver_places(driver, naver_folder, total_list):
         '// *[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/favorite-list-option-area/div/span/span').text
 
     elem = driver.find_elements_by_class_name('item_place')
-    i=0
+    i = 0
     while True:
         try:
             time.sleep(0.1)
-            driver.execute_script("arguments[0].scrollIntoView(true);", elem[i])
+            driver.execute_script(
+                "arguments[0].scrollIntoView(true);", elem[i])
             if elem[i].text.split("\n")[0] == naver_folder:
                 elem[i].click()
                 break
@@ -232,9 +233,11 @@ if __name__ == "__main__":
     parser.add_argument('--kakao_id', type=str, required=True)
     parser.add_argument('--kakao_pw', type=str, required=True)
     parser.add_argument('--kakao_folder', type=str)
-    parser.add_argument('--shape', type=str, default="like")
-    parser.add_argument('--color', type=str, default="red")
-    parser.add_argument('--os', type=str, required=True)
+    parser.add_argument('--shape', type=str, default="like",
+                        help='star, heart, thunder, check, eye, smile, shine, clover, rect, like')
+    parser.add_argument('--color', type=str, default="red",
+                        help='red, yellow, orange, light green, green, purple, pink')
+    parser.add_argument('--os', type=str, required=True, help='mac, window')
     args = parser.parse_args()
 
     if args.kakao_folder == None:
