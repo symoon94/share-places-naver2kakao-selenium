@@ -21,7 +21,7 @@ import time
 
 def scroll_down(driver, element):
     driver.execute_script("arguments[0].scrollIntoView(true);", element)
-    time.sleep(1)
+    time.sleep(1.5)
 
 
 def clipboard_input(driver, xpath, user_input, os):
@@ -78,13 +78,11 @@ def get_naver_places(driver, naver_folder, total_list):
                 f'//*[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/div/favorite-place-folder-list/ul/li[{i}]/a/div/span[1]')
             if naver_folder == folder.text:
                 folder.click()
+                break
         except:
             pass
 
     time.sleep(5)
-
-    # last_elem = driver.find_elements_by_class_name("item_result")[-1]
-    # scroll_down(driver, last_elem)
 
     address_list = driver.find_elements_by_class_name("item_result")
     len_address_list = len(address_list)
@@ -193,7 +191,7 @@ def main(args):
     for i in range(num_restaurant):
         if i % 10 == 0:
             print(f"{int((i/num_restaurant)*100)}% 진행 중...")
-        if count % 100 == 0 and i != 0:
+        if count % 100 == 0 and count != 0:
             kakao_folder = args.kakao_folder + str(i//100)
         keyword = f"{total[i]['address']} {total[i]['name']}"
         time.sleep(2)
