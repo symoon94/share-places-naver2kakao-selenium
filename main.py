@@ -21,6 +21,7 @@ import time
 
 def scroll_down(driver, element):
     driver.execute_script("arguments[0].scrollIntoView(true);", element)
+    time.sleep(1)
 
 
 def clipboard_input(driver, xpath, user_input, os):
@@ -58,7 +59,7 @@ def sign_in_kakao(driver, args):
     driver.find_element_by_class_name("submit").click()
 
 
-def get_naver_places(driver, naver_folder):
+def get_naver_places(driver, naver_folder, total_list):
     element = WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.CLASS_NAME, 'list_place')))
 
@@ -82,20 +83,19 @@ def get_naver_places(driver, naver_folder):
 
     time.sleep(5)
 
-    last_elem = driver.find_elements_by_class_name("item_result")[-1]
-    scroll_down(driver, last_elem)
+    # last_elem = driver.find_elements_by_class_name("item_result")[-1]
+    # scroll_down(driver, last_elem)
 
     address_list = driver.find_elements_by_class_name("item_result")
     len_address_list = len(address_list)
-    total = []
     for i in range(len_address_list):
         infos = address_list[i].text.split("\n")
         dic = defaultdict(str)
         dic["name"] = infos[0]
         dic["address"] = infos[1]
-        total.append(dic)
-
-    return total
+        total_list.append(dic)
+    print(f'네이버 "{naver_folder}"에서 가져온 장소 토탈 {len_address_list}개')
+    return total_list
 
 
 def search(driver, keyword):
@@ -149,15 +149,16 @@ def lookup(driver, folder_name, count, new_added, shape, color):
         driver.find_element_by_link_text('새 폴더 추가').click()
         time.sleep(3)
         driver.find_element_by_class_name('btn_option').click()
-        time.sleep(3)
-        driver.find_element_by_link_text(shape).click()
+        element = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.LINK_TEXT, shape)))
+        element.click()
         time.sleep(3)
         driver.find_element_by_id('folderName').send_keys(folder_name)
         time.sleep(3)
         driver.find_element_by_xpath(
             '/html/body/div[20]/div[4]/form/fieldset/div[3]/button').click()
 
-    element = WebDriverWait(driver, 20).until(
+    element = WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable((By.ID, color)))
     element.click()
     driver.find_elements_by_class_name('btn_submit')[0].click()
@@ -165,7 +166,6 @@ def lookup(driver, folder_name, count, new_added, shape, color):
 
 
 def main(args):
-    naver_folder = args.naver_folder
     kakao_folder = args.kakao_folder
     color = get_color(args.color)
 
@@ -177,9 +177,14 @@ def main(args):
         ChromeDriverManager().install(), chrome_options=option)
 
     sign_in_naver(driver, args)
-    total = get_naver_places(driver, naver_folder)
+
+    total = []
+    for naver_folder in args.naver_list:
+        total = get_naver_places(driver, naver_folder, total)
+        driver.back()
+
     num_restaurant = len(total)
-    print(f'네이버 "{naver_folder}"에서 가져온 장소 토탈 {num_restaurant}개')
+    print(f'네이버에서 가져온 장소 토탈 {num_restaurant}개')
 
     sign_in_kakao(driver, args)
 
@@ -230,7 +235,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--naver_id', type=str, required=True)
     parser.add_argument('--naver_pw', type=str, required=True)
-    parser.add_argument('--naver_folder', type=str, required=True)
+    parser.add_argument('--naver_folder', type=str,
+                        action='append', dest='naver_list', required=True)
     parser.add_argument('--kakao_id', type=str, required=True)
     parser.add_argument('--kakao_pw', type=str, required=True)
     parser.add_argument('--kakao_folder', type=str)
@@ -240,7 +246,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.kakao_folder == None:
-        args.kakao_folder = args.naver_folder
+        args.kakao_folder = args.naver_list[0]
 
     main(args)
     print("Sharing completed")
