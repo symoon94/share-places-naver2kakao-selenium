@@ -19,6 +19,10 @@ import pyperclip
 import time
 
 
+def scroll_down(driver, element):
+    driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
+
 def clipboard_input(driver, xpath, user_input, os):
     pyperclip.copy(user_input)
     driver.find_element_by_xpath(xpath).click()
@@ -57,6 +61,13 @@ def sign_in_kakao(driver, args):
 def get_naver_places(driver, naver_folder):
     element = WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.CLASS_NAME, 'list_place')))
+
+    num_places = driver.find_element_by_xpath(
+        '// *[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/favorite-list-option-area/div/span/span').text
+
+    last_elem = driver.find_elements_by_class_name('item_place')[-1]
+    scroll_down(driver, last_elem)
+
     categ_list = driver.find_element_by_class_name(
         'list_place').text.split("\n")
     categ_size = len(categ_list)
@@ -70,6 +81,9 @@ def get_naver_places(driver, naver_folder):
             pass
 
     time.sleep(5)
+
+    last_elem = driver.find_elements_by_class_name("item_result")[-1]
+    scroll_down(driver, last_elem)
 
     address_list = driver.find_elements_by_class_name("item_result")
     len_address_list = len(address_list)
@@ -195,10 +209,9 @@ def main(args):
             keyword = total[i]['name']
             search(driver, keyword)
 
-        element = WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable((By.CLASS_NAME, "fav")))
-
         try:
+            element = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.CLASS_NAME, "fav")))
             element.click()
             time.sleep(1)
             count, new_added = lookup(
