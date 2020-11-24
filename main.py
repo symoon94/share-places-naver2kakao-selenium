@@ -222,9 +222,9 @@ def main(args):
         except:
             pass
 
-    time.sleep(1)
+    time.sleep(3)
+    driver.close()
     driver.quit()
-    time.sleep(1)
     print(f'카카오 "{kakao_folder}"에 공유된 장소 토탈 {count}개')
     print(f'그 중 새롭게 공유된 장소 {new_added}개')
 
