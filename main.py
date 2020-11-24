@@ -19,11 +19,6 @@ import pyperclip
 import time
 
 
-def scroll_down(driver, element):
-    driver.execute_script("arguments[0].scrollIntoView(true);", element)
-    time.sleep(1.5)
-
-
 def clipboard_input(driver, xpath, user_input, os):
     pyperclip.copy(user_input)
     driver.find_element_by_xpath(xpath).click()
@@ -66,32 +61,31 @@ def get_naver_places(driver, naver_folder, total_list):
     num_places = driver.find_element_by_xpath(
         '// *[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/favorite-list-option-area/div/span/span').text
 
-    last_elem = driver.find_elements_by_class_name('item_place')[-1]
-    scroll_down(driver, last_elem)
-
-    categ_list = driver.find_element_by_class_name(
-        'list_place').text.split("\n")
-    categ_size = len(categ_list)
-    for i in range(categ_size):
+    elem = driver.find_elements_by_class_name('item_place')
+    i=0
+    while True:
         try:
-            folder = driver.find_element_by_xpath(
-                f'//*[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/div/favorite-place-folder-list/ul/li[{i}]/a/div/span[1]')
-            if naver_folder == folder.text:
-                folder.click()
+            time.sleep(0.1)
+            driver.execute_script("arguments[0].scrollIntoView(true);", elem[i])
+            if elem[i].text.split("\n")[0] == naver_folder:
+                elem[i].click()
                 break
         except:
             pass
+        i += 1
 
     time.sleep(5)
 
     address_list = driver.find_elements_by_class_name("item_result")
     len_address_list = len(address_list)
+
     for i in range(len_address_list):
         infos = address_list[i].text.split("\n")
         dic = defaultdict(str)
         dic["name"] = infos[0]
         dic["address"] = infos[1]
         total_list.append(dic)
+
     print(f'네이버 "{naver_folder}"에서 가져온 장소 토탈 {len_address_list}개')
     return total_list
 
