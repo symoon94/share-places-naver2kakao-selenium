@@ -92,7 +92,9 @@ def get_naver_places(driver, naver_folder, total_list):
 
 
 def search(driver, keyword):
-    driver.find_element_by_id("search.keyword.query").clear()
+    element = WebDriverWait(driver, 3).until(
+        EC.element_to_be_clickable((By.ID, "search.keyword.query")))
+    element.clear()
     words = keyword.split()
     for word in words:
         driver.find_element_by_id("search.keyword.query").send_keys(word + " ")
@@ -189,7 +191,6 @@ def main(args):
         if count % 100 == 0 and count != 0:
             kakao_folder = args.kakao_folder + str(i//100)
         keyword = f"{total[i]['address']} {total[i]['name']}"
-        time.sleep(2)
         search(driver, keyword)
         time.sleep(2)
         if driver.find_element_by_class_name("message").is_displayed() and driver.find_element_by_class_name("addrtitle").text == "주소":
