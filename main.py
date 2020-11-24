@@ -61,11 +61,11 @@ def get_naver_places(driver, naver_folder, total_list):
     num_places = driver.find_element_by_xpath(
         '// *[@id="container"]/shrinkable-layout/div/favorite-layout/favorite-list/favorite-list-option-area/div/span/span').text
 
-    elem = driver.find_elements_by_class_name('item_place')
+    elem = driver.find_elements_by_class_name('place_box')
     i = 0
     while True:
         try:
-            time.sleep(0.1)
+            time.sleep(0.5)
             driver.execute_script(
                 "arguments[0].scrollIntoView(true);", elem[i])
             if elem[i].text.split("\n")[0] == naver_folder:
@@ -156,7 +156,9 @@ def lookup(driver, folder_name, count, new_added, shape, color):
     element = WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable((By.ID, color)))
     element.click()
-    driver.find_elements_by_class_name('btn_submit')[0].click()
+    element = WebDriverWait(driver, 5).until(
+        EC.element_to_be_clickable((By.CLASS_NAME, 'btn_submit')))
+    element.click()
     return count + 1, new_added + 1
 
 
@@ -176,7 +178,8 @@ def main(args):
     total = []
     for naver_folder in args.naver_list:
         total = get_naver_places(driver, naver_folder, total)
-        driver.back()
+        url = 'https://map.naver.com/v5/favorite/myPlace'
+        driver.get(url)
 
     num_restaurant = len(total)
     print(f'네이버에서 가져온 장소 토탈 {num_restaurant}개')
@@ -219,8 +222,9 @@ def main(args):
         except:
             pass
 
-    time.sleep(3)
+    time.sleep(1)
     driver.quit()
+    time.sleep(1)
     print(f'카카오 "{kakao_folder}"에 공유된 장소 토탈 {count}개')
     print(f'그 중 새롭게 공유된 장소 {new_added}개')
 
